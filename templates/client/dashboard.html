@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Client Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0"><i class="fas fa-tachometer-alt me-2"></i>Client Dashboard</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-file-alt me-2"></i>Encrypted Files Shared With You</h5>
+                                <h2 class="mb-0">{{ shared_files|length }}</h2>
+                                <div class="mt-2">
+                                    <a href="{{ url_for('client_files') }}" class="btn btn-light btn-sm">
+                                        <i class="fas fa-eye me-1"></i> View Files
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-search me-2"></i>Search Encrypted Data</h5>
+                                <p>Search securely through your encrypted files</p>
+                                <div>
+                                    <a href="{{ url_for('client_search') }}" class="btn btn-light btn-sm">
+                                        <i class="fas fa-search me-1"></i> Search Files
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h5 class="mb-3"><i class="fas fa-file-alt me-2"></i>Recently Shared Files</h5>
+                
+                {% if shared_files %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>File Name</th>
+                                <th>Type</th>
+                                <th>Shared By</th>
+                                <th>Shared On</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for share in shared_files[:5] %}
+                            <tr>
+                                <td>{{ share.file.original_filename }}</td>
+                                <td>
+                                    {% if share.file.file_type == 'pdf' %}
+                                    <span class="badge bg-danger"><i class="fas fa-file-pdf me-1"></i>PDF</span>
+                                    {% elif share.file.file_type in ['mp3', 'wav', 'ogg'] %}
+                                    <span class="badge bg-info"><i class="fas fa-file-audio me-1"></i>Audio</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary"><i class="fas fa-file-alt me-1"></i>Text</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ share.file.uploader.username }}</td>
+                                <td>{{ share.shared_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('client_decrypt', file_id=share.file.id) }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-unlock"></i> Decrypt
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#fileInfoModal{{ share.file.id }}">
+                                            <i class="fas fa-info-circle"></i> Info
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- File Info Modal -->
+                                    <div class="modal fade" id="fileInfoModal{{ share.file.id }}" tabindex="-1" aria-labelledby="fileInfoModalLabel{{ share.file.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="fileInfoModalLabel{{ share.file.id }}">File Details: {{ share.file.original_filename }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <ul class="list-group">
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>File Name:</span>
+                                                            <span class="fw-bold">{{ share.file.original_filename }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>File Type:</span>
+                                                            <span>{{ share.file.file_type }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>File Size:</span>
+                                                            <span>{{ (share.file.file_size / 1024)|round(1) }} KB</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Uploaded By:</span>
+                                                            <span>{{ share.file.uploader.username }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Upload Date:</span>
+                                                            <span>{{ share.file.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Last Updated:</span>
+                                                            <span>{{ share.file.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Shared With You:</span>
+                                                            <span>{{ share.shared_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Encryption Status:</span>
+                                                            <span class="badge bg-success">Encrypted</span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <a href="{{ url_for('client_decrypt', file_id=share.file.id) }}" class="btn btn-success">
+                                                        <i class="fas fa-unlock me-1"></i> Decrypt and Download
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    {% if shared_files|length > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('client_files') }}" class="btn btn-primary">
+                            <i class="fas fa-list me-1"></i> View All Files
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> No files have been shared with you yet.
+                </div>
+                {% endif %}
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0"><i class="fas fa-question-circle me-2"></i>How to Use the DSSE System</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="text-center">
+                                    <i class="fas fa-download fa-3x mb-3 text-info"></i>
+                                    <h5>1. Access Encrypted Files</h5>
+                                    <p>Encrypted files shared with you appear in your dashboard and files section.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="text-center">
+                                    <i class="fas fa-unlock fa-3x mb-3 text-success"></i>
+                                    <h5>2. Decrypt Files</h5>
+                                    <p>Use the Decrypt button to decrypt and download files for viewing.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="fas fa-search fa-3x mb-3 text-primary"></i>
+                                    <h5>3. Search Contents</h5>
+                                    <p>Use the search function to find specific content in your decrypted files.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0"><i class="fas fa-tachometer-alt me-2"></i>Server Dashboard</h4>
+                <a href="{{ url_for('server_upload') }}" class="btn btn-light">
+                    <i class="fas fa-upload me-1"></i> Upload New File
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-file me-2"></i>Total Files</h5>
+                                <h2 class="mb-0">{{ files|length }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-users me-2"></i>Connected Clients</h5>
+                                <h2 class="mb-0">{{ clients|length }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-key me-2"></i>Encryption Status</h5>
+                                <h2 class="mb-0">Active</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h5 class="mb-3"><i class="fas fa-file-alt me-2"></i>Encrypted Files</h5>
+                
+                {% if files %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>File Name</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                                <th>Updated</th>
+                                <th>Shared With</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for file in files %}
+                            <tr>
+                                <td>{{ file.original_filename }}</td>
+                                <td>
+                                    {% if file.file_type == 'pdf' %}
+                                    <span class="badge bg-danger"><i class="fas fa-file-pdf me-1"></i>PDF</span>
+                                    {% elif file.file_type in ['mp3', 'wav', 'ogg'] %}
+                                    <span class="badge bg-info"><i class="fas fa-file-audio me-1"></i>Audio</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary"><i class="fas fa-file-alt me-1"></i>Text</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ (file.file_size / 1024)|round(1) }} KB</td>
+                                <td>{{ file.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ file.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if file.shares.count() > 0 %}
+                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#sharesModal{{ file.id }}">
+                                        {{ file.shares.count() }} clients
+                                    </button>
+                                    
+                                    <!-- Shares Modal -->
+                                    <div class="modal fade" id="sharesModal{{ file.id }}" tabindex="-1" aria-labelledby="sharesModalLabel{{ file.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="sharesModalLabel{{ file.id }}">Clients with access to {{ file.original_filename }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <ul class="list-group">
+                                                        {% for share in file.shares %}
+                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                            {{ share.client.username }}
+                                                            <span class="badge bg-info">Shared on {{ share.shared_at.strftime('%Y-%m-%d') }}</span>
+                                                        </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="badge bg-warning">Not shared</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('server_update', file_id=file.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit"></i> Update
+                                        </a>
+                                        <a href="{{ url_for('server_search') }}?file_id={{ file.id }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-search"></i> Search
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> No encrypted files uploaded yet. 
+                    <a href="{{ url_for('server_upload') }}" class="alert-link">Upload your first file</a>.
+                </div>
+                {% endif %}
+                
+                <h5 class="mt-4 mb-3"><i class="fas fa-users me-2"></i>Connected Clients</h5>
+                
+                {% if clients %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Joined</th>
+                                <th>Shared Files</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for client in clients %}
+                            <tr>
+                                <td>{{ client.username }}</td>
+                                <td>{{ client.email }}</td>
+                                <td>{{ client.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% set shared_count = client.shared_files.count() %}
+                                    {% if shared_count > 0 %}
+                                    <span class="badge bg-success">{{ shared_count }} files</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">No files</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> No clients have registered yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

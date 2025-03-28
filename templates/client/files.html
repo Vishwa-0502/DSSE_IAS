@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}My Files{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0"><i class="fas fa-file-alt me-2"></i>Encrypted Files Shared With You</h4>
+            </div>
+            <div class="card-body">
+                {% if shared_files %}
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-filter"></i></span>
+                        <input type="text" class="form-control" id="fileSearch" placeholder="Filter files...">
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="filesTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>File Name</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Shared By</th>
+                                <th>Upload Date</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for share in shared_files %}
+                            <tr>
+                                <td>{{ share.file.original_filename }}</td>
+                                <td>
+                                    {% if share.file.file_type == 'pdf' %}
+                                    <span class="badge bg-danger"><i class="fas fa-file-pdf me-1"></i>PDF</span>
+                                    {% elif share.file.file_type in ['mp3', 'wav', 'ogg'] %}
+                                    <span class="badge bg-info"><i class="fas fa-file-audio me-1"></i>Audio</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary"><i class="fas fa-file-alt me-1"></i>Text</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ (share.file.file_size / 1024)|round(1) }} KB</td>
+                                <td>{{ share.file.uploader.username }}</td>
+                                <td>{{ share.file.uploaded_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ share.file.updated_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('client_decrypt', file_id=share.file.id) }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-unlock"></i> Decrypt
+                                        </a>
+                                        <a href="{{ url_for('client_search') }}?file_id={{ share.file.id }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-search"></i> Search
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> 
+                        <strong>How to use:</strong> Click "Decrypt" to download the decrypted file. Click "Search" to search within the file.
+                    </div>
+                </div>
+                
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> No files have been shared with you yet.
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <i class="fas fa-lock fa-2x mb-2 text-info"></i>
+                        <h6>End-to-End Encryption</h6>
+                        <small class="text-muted">Files are securely encrypted</small>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-shield-alt fa-2x mb-2 text-info"></i>
+                        <h6>Secure Decryption</h6>
+                        <small class="text-muted">Only you can decrypt your files</small>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-history fa-2x mb-2 text-info"></i>
+                        <h6>Dynamic Updates</h6>
+                        <small class="text-muted">Always access the latest version</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Simple file filter functionality
+    document.getElementById('fileSearch').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const table = document.getElementById('filesTable');
+        const rows = table.getElementsByTagName('tr');
+        
+        for (let i = 1; i < rows.length; i++) {  // Start at 1 to skip header row
+            const fileName = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
+            const fileType = rows[i].getElementsByTagName('td')[1].textContent.toLowerCase();
+            const sharedBy = rows[i].getElementsByTagName('td')[3].textContent.toLowerCase();
+            
+            if (fileName.includes(searchTerm) || fileType.includes(searchTerm) || sharedBy.includes(searchTerm)) {
+                rows[i].style.display = '';
+            } else {
+                rows[i].style.display = 'none';
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

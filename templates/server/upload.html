@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Encrypted File{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0"><i class="fas fa-upload me-2"></i>Upload & Encrypt File</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('server_upload') }}" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> 
+                            Files will be automatically encrypted using a secure symmetric key before storage.
+                        </div>
+                    </div>
+                
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select File to Encrypt</label>
+                        <input type="file" class="form-control" id="file" name="file" required>
+                        <small class="form-text text-muted">
+                            Supported file types: Text (.txt), PDF (.pdf), Audio (.mp3, .wav, .ogg)
+                        </small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Share with Clients</label>
+                        {% if clients %}
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                        <label class="form-check-label" for="selectAll">
+                                            <strong>Select All Clients</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    {% for client in clients %}
+                                    <div class="form-check">
+                                        <input class="form-check-input client-checkbox" type="checkbox" name="clients" id="client{{ client.id }}" value="{{ client.id }}">
+                                        <label class="form-check-label" for="client{{ client.id }}">
+                                            {{ client.username }} ({{ client.email }})
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i> No clients available to share with.
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-lock me-2"></i>Encrypt & Upload
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3 mb-md-0">
+                        <div>
+                            <i class="fas fa-shield-alt fa-2x mb-2 text-info"></i>
+                            <h6>Encrypted Storage</h6>
+                            <small class="text-muted">Files are encrypted before storage</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center mb-3 mb-md-0">
+                        <div>
+                            <i class="fas fa-search fa-2x mb-2 text-info"></i>
+                            <h6>Searchable Encryption</h6>
+                            <small class="text-muted">Search without decryption</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div>
+                            <i class="fas fa-sync fa-2x mb-2 text-info"></i>
+                            <h6>Dynamic Updates</h6>
+                            <small class="text-muted">Update encrypted data</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const clientCheckboxes = document.querySelectorAll('.client-checkbox');
+        clientCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

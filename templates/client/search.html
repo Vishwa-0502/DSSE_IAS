@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Files{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0"><i class="fas fa-search me-2"></i>Search Decrypted Files</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> 
+                    Files will be temporarily decrypted on the server to perform the search, then immediately deleted.
+                </div>
+                
+                <form method="POST" action="{{ url_for('client_search') }}">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-4">
+                            <label for="keyword" class="form-label">Search Keyword</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" class="form-control" id="keyword" name="keyword" required 
+                                       placeholder="Enter search term..." value="{{ request.form.get('keyword', '') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="file_id" class="form-label">File (Optional)</label>
+                            <select class="form-select" id="file_id" name="file_id">
+                                <option value="">All Files</option>
+                                {% for share in shared_files %}
+                                <option value="{{ share.file.id }}" {% if request.form.get('file_id')|int == share.file.id %}selected{% endif %}>
+                                    {{ share.file.original_filename }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="invisible">Submit</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i>Search Files
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                
+                {% if results %}
+                    <h5 class="mb-3"><i class="fas fa-list me-2"></i>Search Results</h5>
+                    {% for result in results %}
+                        <div class="card mb-3">
+                            <div class="card-header bg-info">
+                                <h5 class="card-title mb-0 text-white">
+                                    <i class="fas fa-file me-2"></i>{{ result.file.original_filename }}
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-2">Found {{ result.matches|length }} matches:</p>
+                                <div class="list-group">
+                                    {% for match in result.matches %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">Match at position {{ match.position }}</h6>
+                                        </div>
+                                        <p class="mb-1">
+                                            <span class="text-muted">Context:</span> 
+                                            <span class="search-context">{{ match.context|safe }}</span>
+                                        </p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="card-footer d-flex justify-content-between align-items-center">
+                                <span class="text-muted">
+                                    File Type: 
+                                    {% if result.file.file_type == 'pdf' %}
+                                    <span class="badge bg-danger"><i class="fas fa-file-pdf me-1"></i>PDF</span>
+                                    {% elif result.file.file_type in ['mp3', 'wav', 'ogg'] %}
+                                    <span class="badge bg-info"><i class="fas fa-file-audio me-1"></i>Audio</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary"><i class="fas fa-file-alt me-1"></i>Text</span>
+                                    {% endif %}
+                                </span>
+                                <a href="{{ url_for('client_decrypt', file_id=result.file.id) }}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-download me-1"></i> Download File
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% elif request.method == 'POST' %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> No matches found for the search term.
+                    </div>
+                {% endif %}
+                
+                {% if not shared_files %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> 
+                        No files available for search. Wait for the server to share files with you.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-context strong {
+        background-color: rgba(255, 193, 7, 0.3);
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+</style>
+{% endblock %}

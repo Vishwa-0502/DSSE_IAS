@@ -1,0 +1,163 @@
+/* Custom CSS for the DSSE System */
+
+/* Enhance spacing in the application */
+.container {
+    padding-bottom: 2rem;
+}
+
+/* Card styling */
+.card {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+    border-bottom: none;
+}
+
+.card-footer {
+    border-radius: 0 0 0.5rem 0.5rem !important;
+    border-top: none;
+}
+
+/* Footer styling */
+.footer {
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Form enhancements */
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Button styling */
+.btn {
+    border-radius: 0.25rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.btn-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.btn-success {
+    background-color: var(--bs-success);
+    border-color: var(--bs-success);
+}
+
+.btn-info {
+    background-color: var(--bs-info);
+    border-color: var(--bs-info);
+}
+
+/* Table enhancements */
+.table-responsive {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+/* Search results highlighting */
+.search-result-highlight {
+    background-color: rgba(255, 193, 7, 0.3);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Enhanced input groups */
+.input-group-text {
+    background-color: var(--bs-dark);
+    border-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+/* Animation for loading */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 3px solid var(--bs-primary);
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+/* Custom badge styles */
+.badge {
+    font-weight: normal;
+    padding: 0.35em 0.65em;
+}
+
+/* File type icons coloring */
+.file-icon-pdf {
+    color: #dc3545;
+}
+
+.file-icon-audio {
+    color: #0dcaf0;
+}
+
+.file-icon-text {
+    color: #6c757d;
+}
+
+/* Tab styling */
+.nav-tabs .nav-link {
+    border: none;
+    color: var(--bs-gray-600);
+    padding: 0.5rem 1rem;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--bs-primary);
+    border-bottom: 2px solid var(--bs-primary);
+    background-color: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    isolation: isolate;
+}
+
+/* Scrollable areas */
+.scrollable-area {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Custom alert styling */
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+}
+
+/* Media queries for responsive adjustments */
+@media (max-width: 768px) {
+    .card-title {
+        font-size: 1.25rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
