@@ -1,0 +1,117 @@
+sqlalchemy.exc.IntegrityError
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: search_index.file_id
+[SQL: INSERT INTO search_index (file_id, keyword_hash, encrypted_locations) VALUES (?, ?, ?) RETURNING id]
+[parameters: (None, '1eb79602411ef02cf6fe117897015fff89f80face4eccd50425c45149b148408', '{"iv": "9b4dd9eb4e99232d929405f8", "tag": "805378b7e8d0ba3bd0b034761efa74bc", "salt": "996f380d24313ad7d78fef6269c7b9a9", "data": "2c9c59"}')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+Traceback (most recent call last)
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\base.py", line 2115, in _exec_insertmany_context
+dialect.do_execute(
+^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\default.py", line 942, in do_execute
+cursor.execute(statement, parameters)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The above exception was the direct cause of the following exception:
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1536, in __call__
+return self.wsgi_app(environ, start_response)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1514, in wsgi_app
+response = self.handle_exception(e)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+response = self.full_dispatch_request()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+rv = self.handle_user_exception(e)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+rv = self.dispatch_request()
+     ^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\flask_login\utils.py", line 290, in decorated_view
+return current_app.ensure_sync(func)(*args, **kwargs)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\Downloads\Securefinallllll\SecureDataExchange\routes.py", line 168, in server_upload
+db.session.commit()
+^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\scoping.py", line 599, in commit
+return self._proxied.commit()
+       ^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\session.py", line 2032, in commit
+trans.commit(_to_root=True)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "<string>", line 2, in commit
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
+ret_value = fn(self, *arg, **kw)
+            ^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\session.py", line 1313, in commit
+self._prepare_impl()
+^^^^^^^^^^^^^^^^^^^^
+File "<string>", line 2, in _prepare_impl
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
+ret_value = fn(self, *arg, **kw)
+            ^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\session.py", line 1288, in _prepare_impl
+self.session.flush()
+^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\session.py", line 4353, in flush
+self._flush(objects)
+^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\session.py", line 4488, in _flush
+with util.safe_reraise():
+     ^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+raise exc_value.with_traceback(exc_tb)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\session.py", line 4449, in _flush
+flush_context.execute()
+^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+rec.execute(self)
+^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+util.preloaded.orm_persistence.save_obj(
+^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+_emit_insert_statements(
+^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\orm\persistence.py", line 1143, in _emit_insert_statements
+result = connection.execute(
+         
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\base.py", line 1416, in execute
+return meth(
+       
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\sql\elements.py", line 523, in _execute_on_connection
+return connection._execute_clauseelement(
+       
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\base.py", line 1638, in _execute_clauseelement
+ret = self._execute_context(
+      
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\base.py", line 1841, in _execute_context
+return self._exec_insertmany_context(dialect, context)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\base.py", line 2123, in _exec_insertmany_context
+self._handle_dbapi_exception(
+^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\base.py", line 2352, in _handle_dbapi_exception
+raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\base.py", line 2115, in _exec_insertmany_context
+dialect.do_execute(
+^
+File "C:\Users\Vishwajeet\AppData\Local\Programs\Python\Python313\Lib\site-packages\sqlalchemy\engine\default.py", line 942, in do_execute
+cursor.execute(statement, parameters)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: search_index.file_id
+[SQL: INSERT INTO search_index (file_id, keyword_hash, encrypted_locations) VALUES (?, ?, ?) RETURNING id]
+[parameters: (None, '1eb79602411ef02cf6fe117897015fff89f80face4eccd50425c45149b148408', '{"iv": "9b4dd9eb4e99232d929405f8", "tag": "805378b7e8d0ba3bd0b034761efa74bc", "salt": "996f380d24313ad7d78fef6269c7b9a9", "data": "2c9c59"}')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+The debugger caught an exception in your WSGI application. You can now look at the traceback which led to the error.
+To switch between the interactive traceback and the plaintext one, you can click on the "Traceback" headline. From the text traceback you can also create a paste of it. For code execution mouse-over the frame you want to debug and click on the console icon on the right side.
+
+You can execute arbitrary Python code in the stack frames and there are some extra helpers available for introspection:
+
+dump() shows all variables in the frame
+dump(obj) dumps all that's known about the object

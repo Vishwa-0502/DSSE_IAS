@@ -148,10 +148,7 @@ def server_upload():
             # Encrypt the file
             iv, tag, salt = encrypt_file(original_path, encrypted_path, master_key)
             
-            # Create search index
-            index_data = create_search_index(text_content, master_key)
-            
-            # Store file information in database
+            # Create a new file record first so we have an ID
             new_file = File(
                 filename=encrypted_filename,
                 original_filename=filename,
@@ -160,9 +157,18 @@ def server_upload():
                 uploader_id=current_user.id,
                 iv=iv,
                 tag=tag,
-                salt=salt,
-                index_data=json.dumps(index_data)
+                salt=salt
             )
+            
+            # Add the file to the database to get an ID
+            db.session.add(new_file)
+            db.session.flush()
+            
+            # Create search index with the file_id
+            index_data = create_search_index(text_content, master_key, new_file.id)
+            
+            # Update the file with the index data
+            new_file.index_data = json.dumps(index_data)
             
             db.session.add(new_file)
             db.session.commit()

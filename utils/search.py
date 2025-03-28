@@ -4,7 +4,7 @@ import hashlib
 from models import SearchIndex, db
 from utils.encryption import encrypt_search_index
 
-def create_search_index(text_content, master_key):
+def create_search_index(text_content, master_key, file_id=None):
     """Create a searchable index from text content."""
     index = {}
     
@@ -24,12 +24,14 @@ def create_search_index(text_content, master_key):
         keyword_hash, encrypted_entry = encrypt_search_index(word, positions, master_key)
         encrypted_index[keyword_hash] = encrypted_entry
         
-        # Also save to database for server-side searching
-        index_entry = SearchIndex(
-            keyword_hash=keyword_hash,
-            encrypted_locations=json.dumps(encrypted_entry)
-        )
-        db.session.add(index_entry)
+        # Also save to database for server-side searching if file_id is provided
+        if file_id is not None:
+            index_entry = SearchIndex(
+                file_id=file_id,
+                keyword_hash=keyword_hash,
+                encrypted_locations=json.dumps(encrypted_entry)
+            )
+            db.session.add(index_entry)
     
     return encrypted_index
 

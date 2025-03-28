@@ -1,5 +1,6 @@
 import os
 import io
+import json
 import PyPDF2
 import speech_recognition as sr
 from models import SearchIndex, db
@@ -73,9 +74,9 @@ def update_file_content(file, new_content):
     SearchIndex.query.filter_by(file_id=file_id).delete()
     
     # Create new index
-    encrypted_index = create_search_index(new_content, master_key)
+    encrypted_index = create_search_index(new_content, master_key, file_id)
     
     # Update the file's index data
-    file.index_data = encrypted_index
+    file.index_data = json.dumps(encrypted_index)
     
     db.session.commit()
