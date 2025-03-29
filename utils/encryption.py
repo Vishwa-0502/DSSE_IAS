@@ -8,10 +8,11 @@ from cryptography.hazmat.backends import default_backend
 from models import SearchIndex, db
 
 def generate_master_key():
-    """Generate a random master key for encryption."""
+    """Generate a master key for encryption."""
     # In a real application, this would be securely generated and shared
-    # For demonstration purposes, we use a fixed key
-    return os.urandom(32)  # 256-bit key
+    # For demonstration purposes, we use a fixed key for consistent encryption/decryption
+    # IMPORTANT: In a production system, never hardcode encryption keys
+    return b'ThisIsAFixed32ByteKeyForTestingOnly!'  # 32 bytes = 256-bit key
 
 def derive_key(master_key, salt):
     """Derive an encryption key from the master key and salt."""

@@ -4,7 +4,7 @@ import json
 import PyPDF2
 import speech_recognition as sr
 from models import SearchIndex, db
-from utils.encryption import update_encrypted_file
+from utils.encryption import update_encrypted_file, generate_master_key
 from utils.search import create_search_index
 
 def process_file(file_path, file_type):
@@ -61,8 +61,8 @@ def update_file_content(file, new_content):
     # In a real DSSE system, this would use a specialized algorithm
     # For demonstration, we'll re-encrypt the file
     
-    # Generate a master key (in a real system, this would be securely shared)
-    master_key = os.urandom(32)
+    # Get our master key (using the same key as encrypt_file for consistency)
+    master_key = generate_master_key()
     
     # Update the encrypted file
     update_encrypted_file(file, new_content, master_key)
