@@ -42,44 +42,64 @@ def search_file(file_path_or_content, keyword):
         file_path_or_content: Either a file path (str) or a file-like object (StringIO)
         keyword: The keyword to search for
     """
-    # Check if the input is a file path or already content
-    if isinstance(file_path_or_content, str) and not hasattr(file_path_or_content, 'read'):
-        # It's a file path
-        with open(file_path_or_content, 'r', errors='ignore') as f:
-            content = f.read()
-    else:
-        # It's a file-like object (StringIO)
-        content = file_path_or_content.read() if hasattr(file_path_or_content, 'read') else file_path_or_content
+    import logging
+    logger = logging.getLogger(__name__)
     
-    # Convert keyword to lowercase for case-insensitive search
-    keyword_lower = keyword.lower()
-    content_lower = content.lower()
-    
-    # Find all occurrences
-    matches = []
-    start = 0
-    while True:
-        index = content_lower.find(keyword_lower, start)
-        if index == -1:
-            break
+    try:
+        # Check if the input is a file path or already content
+        if isinstance(file_path_or_content, str) and not hasattr(file_path_or_content, 'read'):
+            # It's a file path
+            logger.info(f"Reading from file path: {file_path_or_content}")
+            with open(file_path_or_content, 'r', errors='ignore') as f:
+                content = f.read()
+        else:
+            # It's a file-like object (StringIO) or a string
+            if hasattr(file_path_or_content, 'read'):
+                logger.info("Reading from file-like object")
+                # Reset the cursor to the beginning of the file if possible
+                if hasattr(file_path_or_content, 'seek'):
+                    file_path_or_content.seek(0)
+                content = file_path_or_content.read()
+            else:
+                # It's directly a string
+                logger.info("Using content string directly")
+                content = str(file_path_or_content)
+        
+        logger.info(f"Searching for keyword: '{keyword}' in content of length: {len(content)}")
+        
+        # Convert keyword to lowercase for case-insensitive search
+        keyword_lower = keyword.lower()
+        content_lower = content.lower()
+        
+        # Find all occurrences
+        matches = []
+        start = 0
+        while True:
+            index = content_lower.find(keyword_lower, start)
+            if index == -1:
+                break
+                
+            # Get context (text before and after the match)
+            context_start = max(0, index - 50)
+            context_end = min(len(content), index + len(keyword) + 50)
             
-        # Get context (text before and after the match)
-        context_start = max(0, index - 50)
-        context_end = min(len(content), index + len(keyword) + 50)
+            # Extract context with the keyword
+            context = content[context_start:context_end]
+            
+            # Highlight the keyword in the context
+            keyword_start = index - context_start
+            keyword_end = keyword_start + len(keyword)
+            highlighted_context = context[:keyword_start] + f"<strong>{context[keyword_start:keyword_end]}</strong>" + context[keyword_end:]
+            
+            matches.append({
+                'position': index,
+                'context': highlighted_context
+            })
+            
+            start = index + len(keyword)
         
-        # Extract context with the keyword
-        context = content[context_start:context_end]
-        
-        # Highlight the keyword in the context
-        keyword_start = index - context_start
-        keyword_end = keyword_start + len(keyword)
-        highlighted_context = context[:keyword_start] + f"<strong>{context[keyword_start:keyword_end]}</strong>" + context[keyword_end:]
-        
-        matches.append({
-            'position': index,
-            'context': highlighted_context
-        })
-        
-        start = index + len(keyword)
-    
-    return matches
+        logger.info(f"Found {len(matches)} matches for '{keyword}'")
+        return matches
+    except Exception as e:
+        logger.error(f"Search error: {str(e)}", exc_info=True)
+        return [{'position': 0, 'context': f"Error during search: {str(e)}"}]

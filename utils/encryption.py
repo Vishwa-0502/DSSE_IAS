@@ -1,11 +1,16 @@
 import os
 import json
 import hashlib
+import logging
+import binascii
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import hashes, padding
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 from models import SearchIndex, db
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 def generate_master_key():
     """Generate a master key for encryption."""
@@ -66,30 +71,44 @@ def encrypt_file(input_path, output_path, master_key):
 
 def decrypt_file(input_path, output_path, master_key, iv, tag, salt):
     """Decrypt a file using AES-GCM."""
-    # Derive encryption key from master key and salt
-    key = derive_key(master_key, salt)
+    logger.info(f"Starting decryption of {input_path} to {output_path}")
+    logger.info(f"IV length: {len(iv)}, Tag length: {len(tag)}, Salt length: {len(salt)}")
     
-    # Create a decryptor
-    decryptor = Cipher(
-        algorithms.AES(key),
-        modes.GCM(iv, tag),
-        backend=default_backend()
-    ).decryptor()
-    
-    # Read encrypted file
-    with open(input_path, 'rb') as f:
-        ciphertext = f.read()
-    
-    # Decrypt the file
-    padded_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-    
-    # Remove padding
-    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-    plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
-    
-    # Write the decrypted data to the output file
-    with open(output_path, 'wb') as f:
-        f.write(plaintext)
+    try:
+        # Derive encryption key from master key and salt
+        key = derive_key(master_key, salt)
+        logger.info(f"Key derived successfully, length: {len(key)}")
+        
+        # Create a decryptor
+        decryptor = Cipher(
+            algorithms.AES(key),
+            modes.GCM(iv, tag),
+            backend=default_backend()
+        ).decryptor()
+        
+        # Read encrypted file
+        with open(input_path, 'rb') as f:
+            ciphertext = f.read()
+        logger.info(f"Read {len(ciphertext)} bytes from encrypted file")
+        
+        # Decrypt the file
+        padded_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+        logger.info(f"Decryption successful, got {len(padded_plaintext)} bytes of padded plaintext")
+        
+        # Remove padding
+        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+        plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
+        logger.info(f"Padding removed, final plaintext is {len(plaintext)} bytes")
+        
+        # Write the decrypted data to the output file
+        with open(output_path, 'wb') as f:
+            f.write(plaintext)
+        logger.info(f"Decrypted data written to {output_path}")
+        
+        return True
+    except Exception as e:
+        logger.error(f"Decryption failed: {str(e)}")
+        raise
 
 def encrypt_search_index(keyword, positions, master_key):
     """Encrypt a search index entry."""

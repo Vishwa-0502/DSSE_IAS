@@ -110,6 +110,9 @@ def server_dashboard():
 @app.route('/server/upload', methods=['GET', 'POST'])
 @login_required
 def server_upload():
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if not current_user.is_server:
         flash('Access denied: Server privileges required', 'danger')
         return redirect(url_for('index'))
@@ -129,67 +132,102 @@ def server_upload():
             return redirect(request.url)
             
         if file:
-            filename = secure_filename(file.filename)
-            file_type = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'text'
-            
-            # Generate a master key for encryption
-            master_key = generate_master_key()
-            
-            # Save the original file temporarily
-            original_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_' + filename)
-            file.save(original_path)
-            
-            # Process file to extract text
-            text_content = extract_text_from_file(original_path, file_type)
-            
-            # Create encrypted file
-            encrypted_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}.enc"
-            encrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], encrypted_filename)
-            
-            # Encrypt the file
-            iv, tag, salt = encrypt_file(original_path, encrypted_path, master_key)
-            
-            # Create a new file record first so we have an ID
-            new_file = File(
-                filename=encrypted_filename,
-                original_filename=filename,
-                file_type=file_type,
-                file_size=os.path.getsize(original_path),
-                uploader_id=current_user.id,
-                iv=iv,
-                tag=tag,
-                salt=salt
-            )
-            
-            # Add the file to the database to get an ID
-            db.session.add(new_file)
-            db.session.flush()
-            
-            # Create search index with the file_id
-            index_data = create_search_index(text_content, master_key, new_file.id)
-            
-            # Update the file with the index data
-            new_file.index_data = json.dumps(index_data)
-            
-            db.session.add(new_file)
-            db.session.commit()
-            
-            # Share with selected clients
-            client_ids = request.form.getlist('clients')
-            for client_id in client_ids:
-                file_share = FileShare(
-                    file_id=new_file.id,
-                    client_id=int(client_id)
+            try:
+                filename = secure_filename(file.filename)
+                file_type = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'text'
+                logger.info(f"Processing file upload: {filename}, type: {file_type}")
+                
+                # Generate a master key for encryption
+                master_key = generate_master_key()
+                logger.info(f"Generated master key: length {len(master_key)}")
+                
+                # Save the original file temporarily
+                original_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_' + filename)
+                file.save(original_path)
+                file_size = os.path.getsize(original_path)
+                logger.info(f"Saved original file to {original_path}, size: {file_size} bytes")
+                
+                # Process file to extract text
+                text_content = extract_text_from_file(original_path, file_type)
+                logger.info(f"Extracted text content, length: {len(text_content)} chars")
+                
+                # Create encrypted file
+                encrypted_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}.enc"
+                encrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], encrypted_filename)
+                
+                # Encrypt the file
+                iv, tag, salt = encrypt_file(original_path, encrypted_path, master_key)
+                logger.info(f"File encrypted. IV type: {type(iv)}, IV length: {len(iv)}")
+                logger.info(f"Tag type: {type(tag)}, Tag length: {len(tag)}")
+                logger.info(f"Salt type: {type(salt)}, Salt length: {len(salt)}")
+                
+                # Ensure iv, tag, and salt are binary data (bytes)
+                if not isinstance(iv, bytes):
+                    logger.warning(f"IV is not bytes, converting from {type(iv)}")
+                    iv = bytes(iv)
+                
+                if not isinstance(tag, bytes):
+                    logger.warning(f"Tag is not bytes, converting from {type(tag)}")
+                    tag = bytes(tag)
+                
+                if not isinstance(salt, bytes):
+                    logger.warning(f"Salt is not bytes, converting from {type(salt)}")
+                    salt = bytes(salt)
+                
+                logger.info(f"After conversion - IV: {len(iv)} bytes, Tag: {len(tag)} bytes, Salt: {len(salt)} bytes")
+                
+                # Create a new file record first so we have an ID
+                new_file = File(
+                    filename=encrypted_filename,
+                    original_filename=filename,
+                    file_type=file_type,
+                    file_size=file_size,
+                    uploader_id=current_user.id,
+                    iv=iv,
+                    tag=tag,
+                    salt=salt
                 )
-                db.session.add(file_share)
-            
-            db.session.commit()
-            
-            # Clean up temporary file
-            os.remove(original_path)
-            
-            flash('File encrypted and shared successfully', 'success')
-            return redirect(url_for('server_dashboard'))
+                
+                # Add the file to the database to get an ID
+                db.session.add(new_file)
+                db.session.flush()
+                logger.info(f"Created file database record with ID: {new_file.id}")
+                
+                # Create search index with the file_id
+                index_data = create_search_index(text_content, master_key, new_file.id)
+                logger.info(f"Created search index with {len(index_data) if index_data else 0} entries")
+                
+                # Update the file with the index data
+                new_file.index_data = json.dumps(index_data)
+                
+                db.session.add(new_file)
+                db.session.commit()
+                
+                # Share with selected clients
+                client_ids = request.form.getlist('clients')
+                logger.info(f"Sharing file with {len(client_ids)} clients")
+                
+                for client_id in client_ids:
+                    file_share = FileShare(
+                        file_id=new_file.id,
+                        client_id=int(client_id)
+                    )
+                    db.session.add(file_share)
+                
+                db.session.commit()
+                logger.info("File shares created and committed to database")
+                
+                # Clean up temporary file
+                os.remove(original_path)
+                logger.info("Removed temporary original file")
+                
+                flash('File encrypted and shared successfully', 'success')
+                return redirect(url_for('server_dashboard'))
+            except Exception as e:
+                logger.error(f"File upload failed: {str(e)}", exc_info=True)
+                db.session.rollback()
+                flash(f'File upload failed: {str(e)}', 'danger')
+                return redirect(request.url)
     
     return render_template('server/upload.html', clients=clients)
 
@@ -325,6 +363,9 @@ def client_files():
 @app.route('/client/decrypt/<int:file_id>')
 @login_required
 def client_decrypt(file_id):
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if current_user.is_server:
         flash('Access denied: Client view not available for server', 'danger')
         return redirect(url_for('index'))
@@ -345,21 +386,57 @@ def client_decrypt(file_id):
     # Get encrypted file path
     encrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     
+    # Log file metadata
+    logger.info(f"File ID: {file.id}, Original name: {file.original_filename}")
+    logger.info(f"IV type: {type(file.iv)}, IV length: {len(file.iv) if file.iv else 0}")
+    logger.info(f"Tag type: {type(file.tag)}, Tag length: {len(file.tag) if file.tag else 0}")
+    logger.info(f"Salt type: {type(file.salt)}, Salt length: {len(file.salt) if file.salt else 0}")
+    
+    # Ensure iv, tag, and salt are binary data (bytes)
+    if file.iv is None or file.tag is None or file.salt is None:
+        logger.error("Missing encryption parameters - IV, tag, or salt is None")
+        flash('Error: File missing encryption parameters', 'danger')
+        return redirect(url_for('client_files'))
+    
+    # Ensure encryption parameters are in bytes format
+    iv = file.iv if isinstance(file.iv, bytes) else bytes(file.iv)
+    tag = file.tag if isinstance(file.tag, bytes) else bytes(file.tag)
+    salt = file.salt if isinstance(file.salt, bytes) else bytes(file.salt)
+    
+    logger.info(f"After conversion - IV: {len(iv)} bytes, Tag: {len(tag)} bytes, Salt: {len(salt)} bytes")
+    
     # For demo purposes, we'll use a consistent key
     master_key = generate_master_key()
+    logger.info(f"Master key length: {len(master_key)}")
+    
+    # Check if file exists on disk
+    if not os.path.exists(encrypted_path):
+        logger.error(f"Encrypted file not found at {encrypted_path}")
+        flash('Error: Encrypted file not found on the server', 'danger')
+        return redirect(url_for('client_files'))
     
     # Decrypt the file
     try:
-        decrypt_file(encrypted_path, decrypted_path, master_key, file.iv, file.tag, file.salt)
+        logger.info(f"Starting decryption of file {file_id}")
+        decrypt_file(encrypted_path, decrypted_path, master_key, iv, tag, salt)
+        logger.info(f"Decryption completed, checking output file")
+        
+        if not os.path.exists(decrypted_path):
+            logger.error(f"Decrypted file not created at {decrypted_path}")
+            flash('Error: Failed to create decrypted file', 'danger')
+            return redirect(url_for('client_files'))
         
         # For better file handling to avoid permission errors, we'll read the file into memory
         # and then immediately close and delete it
         with open(decrypted_path, 'rb') as f:
             file_data = f.read()
         
+        logger.info(f"Successfully read {len(file_data)} bytes from decrypted file")
+        
         # Delete the file now that we've read it
         if os.path.exists(decrypted_path):
             os.remove(decrypted_path)
+            logger.info(f"Temporary decrypted file removed")
         
         # Create a response with the file data
         response = app.response_class(
@@ -368,8 +445,10 @@ def client_decrypt(file_id):
             direct_passthrough=False
         )
         response.headers.set('Content-Disposition', f'attachment; filename={file.original_filename}')
+        logger.info(f"Sending decrypted file to client, size: {len(file_data)} bytes")
         return response
     except Exception as e:
+        logger.error(f"Decryption failed: {str(e)}", exc_info=True)
         flash(f'Decryption failed: {str(e)}', 'danger')
         return redirect(url_for('client_files'))
     finally:
@@ -377,7 +456,9 @@ def client_decrypt(file_id):
         try:
             if os.path.exists(decrypted_path):
                 os.remove(decrypted_path)
-        except:
+                logger.info(f"Cleanup: Removed temporary decrypted file")
+        except Exception as e:
+            logger.error(f"Failed to remove temporary file: {str(e)}")
             pass  # Ignore errors here
 
 @app.route('/client/search', methods=['GET', 'POST'])
@@ -421,8 +502,17 @@ def client_search():
             decrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], decrypted_filename)
             
             try:
+                # Ensure iv, tag, and salt are binary data (bytes)
+                iv = file.iv if isinstance(file.iv, bytes) else bytes(file.iv) if file.iv else None
+                tag = file.tag if isinstance(file.tag, bytes) else bytes(file.tag) if file.tag else None
+                salt = file.salt if isinstance(file.salt, bytes) else bytes(file.salt) if file.salt else None
+                
+                # Skip decryption if any parameters are missing
+                if iv is None or tag is None or salt is None:
+                    raise ValueError("Missing encryption parameters")
+                
                 # Decrypt the file
-                decrypt_file(encrypted_path, decrypted_path, master_key, file.iv, file.tag, file.salt)
+                decrypt_file(encrypted_path, decrypted_path, master_key, iv, tag, salt)
                 
                 # Read the file content and close the file immediately
                 with open(decrypted_path, 'r', errors='ignore') as f:
@@ -464,8 +554,17 @@ def client_search():
                 decrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], decrypted_filename)
                 
                 try:
+                    # Ensure iv, tag, and salt are binary data (bytes)
+                    iv = file.iv if isinstance(file.iv, bytes) else bytes(file.iv) if file.iv else None
+                    tag = file.tag if isinstance(file.tag, bytes) else bytes(file.tag) if file.tag else None
+                    salt = file.salt if isinstance(file.salt, bytes) else bytes(file.salt) if file.salt else None
+                    
+                    # Skip decryption if any parameters are missing
+                    if iv is None or tag is None or salt is None:
+                        raise ValueError("Missing encryption parameters")
+                    
                     # Decrypt the file
-                    decrypt_file(encrypted_path, decrypted_path, master_key, file.iv, file.tag, file.salt)
+                    decrypt_file(encrypted_path, decrypted_path, master_key, iv, tag, salt)
                     
                     # Read the file content and close the file immediately
                     with open(decrypted_path, 'r', errors='ignore') as f:
