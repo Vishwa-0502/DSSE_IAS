@@ -197,8 +197,14 @@ def server_upload():
                 index_data = create_search_index(text_content, master_key, new_file.id)
                 logger.info(f"Created search index with {len(index_data) if index_data else 0} entries")
                 
+                # Log the keyword hashes for debugging
+                logger.info(f"Index contains keywords with hashes: {list(index_data.keys())[:5]}")
+                
                 # Update the file with the index data
                 new_file.index_data = json.dumps(index_data)
+                
+                # Commit changes to ensure the search index entries are saved
+                db.session.flush()
                 
                 db.session.add(new_file)
                 db.session.commit()

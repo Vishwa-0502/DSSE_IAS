@@ -1,37 +1,68 @@
 import re
 import json
 import hashlib
+import logging
 from models import SearchIndex, db
 from utils.encryption import encrypt_search_index
 
 def create_search_index(text_content, master_key, file_id=None):
     """Create a searchable index from text content."""
+    logger = logging.getLogger(__name__)
+    logger.info(f"Creating search index for text of length {len(text_content)} characters")
+    
     index = {}
     
     # Convert to lowercase and tokenize
     words = re.findall(r'\b\w+\b', text_content.lower())
+    logger.info(f"Extracted {len(words)} words from content")
     
     # Build index with word positions
+    word_count = 0
     for position, word in enumerate(words):
         if len(word) > 2:  # Skip very short words
             if word not in index:
                 index[word] = []
+                word_count += 1
             index[word].append(position)
+    
+    logger.info(f"Built index with {word_count} unique words (excluding very short words)")
     
     # Encrypt each index entry
     encrypted_index = {}
+    db_entries_count = 0
+    
     for word, positions in index.items():
         keyword_hash, encrypted_entry = encrypt_search_index(word, positions, master_key)
         encrypted_index[keyword_hash] = encrypted_entry
+        logger.debug(f"Indexed word with hash {keyword_hash[:10]}..., {len(positions)} positions")
         
         # Also save to database for server-side searching if file_id is provided
         if file_id is not None:
-            index_entry = SearchIndex(
-                file_id=file_id,
-                keyword_hash=keyword_hash,
-                encrypted_locations=json.dumps(encrypted_entry)
-            )
-            db.session.add(index_entry)
+            try:
+                index_entry = SearchIndex(
+                    file_id=file_id,
+                    keyword_hash=keyword_hash,
+                    encrypted_locations=json.dumps(encrypted_entry)
+                )
+                db.session.add(index_entry)
+                db_entries_count += 1
+                
+                # Flush after every 100 entries to avoid large transactions
+                if db_entries_count % 100 == 0:
+                    db.session.flush()
+                    logger.debug(f"Flushed {db_entries_count} search index entries to database")
+            except Exception as e:
+                logger.error(f"Error adding search index for word hash {keyword_hash[:10]}...: {str(e)}")
+    
+    logger.info(f"Created encrypted index with {len(encrypted_index)} entries and {db_entries_count} database records")
+    
+    # Final flush to ensure all entries are in the database
+    if file_id is not None and db_entries_count > 0:
+        try:
+            db.session.flush()
+            logger.info(f"Flushed final batch of search index entries to database")
+        except Exception as e:
+            logger.error(f"Error during final flush of search index entries: {str(e)}")
     
     return encrypted_index
 
