@@ -370,6 +370,9 @@ def client_files():
 @login_required
 def client_decrypt(file_id):
     import logging
+    import io
+    import tempfile
+    import shutil
     logger = logging.getLogger(__name__)
     
     if current_user.is_server:
@@ -385,87 +388,103 @@ def client_decrypt(file_id):
     
     file = File.query.get_or_404(file_id)
     
-    # Create temporary filename for decrypted file
-    decrypted_filename = f"decrypted_{file.original_filename}"
-    decrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], decrypted_filename)
-    
-    # Get encrypted file path
-    encrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    
-    # Log file metadata
-    logger.info(f"File ID: {file.id}, Original name: {file.original_filename}")
-    logger.info(f"IV type: {type(file.iv)}, IV length: {len(file.iv) if file.iv else 0}")
-    logger.info(f"Tag type: {type(file.tag)}, Tag length: {len(file.tag) if file.tag else 0}")
-    logger.info(f"Salt type: {type(file.salt)}, Salt length: {len(file.salt) if file.salt else 0}")
-    
-    # Ensure iv, tag, and salt are binary data (bytes)
-    if file.iv is None or file.tag is None or file.salt is None:
-        logger.error("Missing encryption parameters - IV, tag, or salt is None")
-        flash('Error: File missing encryption parameters', 'danger')
-        return redirect(url_for('client_files'))
-    
-    # Ensure encryption parameters are in bytes format
-    iv = file.iv if isinstance(file.iv, bytes) else bytes(file.iv)
-    tag = file.tag if isinstance(file.tag, bytes) else bytes(file.tag)
-    salt = file.salt if isinstance(file.salt, bytes) else bytes(file.salt)
-    
-    logger.info(f"After conversion - IV: {len(iv)} bytes, Tag: {len(tag)} bytes, Salt: {len(salt)} bytes")
-    
-    # For demo purposes, we'll use a consistent key
-    master_key = generate_master_key()
-    logger.info(f"Master key length: {len(master_key)}")
-    
-    # Check if file exists on disk
-    if not os.path.exists(encrypted_path):
-        logger.error(f"Encrypted file not found at {encrypted_path}")
-        flash('Error: Encrypted file not found on the server', 'danger')
-        return redirect(url_for('client_files'))
-    
-    # Decrypt the file
+    # Use a safer approach with tempfile module for better cleanup
+    temp_dir = tempfile.mkdtemp(dir=app.config['UPLOAD_FOLDER'])
     try:
-        logger.info(f"Starting decryption of file {file_id}")
-        decrypt_file(encrypted_path, decrypted_path, master_key, iv, tag, salt)
-        logger.info(f"Decryption completed, checking output file")
+        logger.info(f"Created temporary directory: {temp_dir}")
         
-        if not os.path.exists(decrypted_path):
-            logger.error(f"Decrypted file not created at {decrypted_path}")
-            flash('Error: Failed to create decrypted file', 'danger')
+        # Create paths
+        decrypted_filename = f"decrypted_{file.original_filename}"
+        decrypted_path = os.path.join(temp_dir, decrypted_filename)
+        encrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        
+        # Log file metadata
+        logger.info(f"File ID: {file.id}, Original name: {file.original_filename}, Type: {file.file_type}")
+        logger.info(f"IV type: {type(file.iv)}, IV length: {len(file.iv) if file.iv else 0}")
+        logger.info(f"Tag type: {type(file.tag)}, Tag length: {len(file.tag) if file.tag else 0}")
+        logger.info(f"Salt type: {type(file.salt)}, Salt length: {len(file.salt) if file.salt else 0}")
+        
+        # Ensure iv, tag, and salt are binary data (bytes)
+        if file.iv is None or file.tag is None or file.salt is None:
+            logger.error("Missing encryption parameters - IV, tag, or salt is None")
+            flash('Error: File missing encryption parameters', 'danger')
             return redirect(url_for('client_files'))
         
-        # For better file handling to avoid permission errors, we'll read the file into memory
-        # and then immediately close and delete it
-        with open(decrypted_path, 'rb') as f:
-            file_data = f.read()
+        # Ensure encryption parameters are in bytes format
+        iv = file.iv if isinstance(file.iv, bytes) else bytes(file.iv)
+        tag = file.tag if isinstance(file.tag, bytes) else bytes(file.tag)
+        salt = file.salt if isinstance(file.salt, bytes) else bytes(file.salt)
         
-        logger.info(f"Successfully read {len(file_data)} bytes from decrypted file")
+        logger.info(f"After conversion - IV: {len(iv)} bytes, Tag: {len(tag)} bytes, Salt: {len(salt)} bytes")
         
-        # Delete the file now that we've read it
-        if os.path.exists(decrypted_path):
-            os.remove(decrypted_path)
-            logger.info(f"Temporary decrypted file removed")
+        # For demo purposes, we'll use a consistent key
+        master_key = generate_master_key()
+        logger.info(f"Master key length: {len(master_key)}")
         
-        # Create a response with the file data
-        response = app.response_class(
-            file_data,
-            mimetype='application/octet-stream',
-            direct_passthrough=False
-        )
-        response.headers.set('Content-Disposition', f'attachment; filename={file.original_filename}')
-        logger.info(f"Sending decrypted file to client, size: {len(file_data)} bytes")
-        return response
-    except Exception as e:
-        logger.error(f"Decryption failed: {str(e)}", exc_info=True)
-        flash(f'Decryption failed: {str(e)}', 'danger')
-        return redirect(url_for('client_files'))
-    finally:
-        # Just in case, try to clean up again (should normally be gone already)
+        # Check if file exists on disk
+        if not os.path.exists(encrypted_path):
+            logger.error(f"Encrypted file not found at {encrypted_path}")
+            flash('Error: Encrypted file not found on the server', 'danger')
+            return redirect(url_for('client_files'))
+        
+        # Decrypt the file
         try:
-            if os.path.exists(decrypted_path):
-                os.remove(decrypted_path)
-                logger.info(f"Cleanup: Removed temporary decrypted file")
+            logger.info(f"Starting decryption of file {file_id}")
+            decrypt_file(encrypted_path, decrypted_path, master_key, iv, tag, salt)
+            logger.info(f"Decryption completed, checking output file")
+            
+            if not os.path.exists(decrypted_path):
+                logger.error(f"Decrypted file not created at {decrypted_path}")
+                flash('Error: Failed to create decrypted file', 'danger')
+                return redirect(url_for('client_files'))
+            
+            # Read file data into memory in binary mode
+            with open(decrypted_path, 'rb') as f:
+                file_data = f.read()
+            
+            logger.info(f"Successfully read {len(file_data)} bytes from decrypted file")
+            
+            # Set correct MIME type based on file type
+            mime_type = 'application/octet-stream'  # Default
+            if file.file_type == 'pdf':
+                mime_type = 'application/pdf'
+            elif file.file_type in ['txt', 'text']:
+                mime_type = 'text/plain'
+            elif file.file_type in ['mp3', 'wav', 'ogg']:
+                if file.file_type == 'mp3':
+                    mime_type = 'audio/mpeg'
+                elif file.file_type == 'wav':
+                    mime_type = 'audio/wav'
+                elif file.file_type == 'ogg':
+                    mime_type = 'audio/ogg'
+            
+            logger.info(f"Using MIME type: {mime_type} for file type: {file.file_type}")
+            
+            # Create a response with the file data
+            response = app.response_class(
+                io.BytesIO(file_data),
+                mimetype=mime_type,
+                direct_passthrough=True
+            )
+            response.headers.set('Content-Disposition', f'attachment; filename={file.original_filename}')
+            response.headers.set('Content-Length', str(len(file_data)))
+            logger.info(f"Sending decrypted file to client, size: {len(file_data)} bytes")
+            return response
+            
         except Exception as e:
-            logger.error(f"Failed to remove temporary file: {str(e)}")
-            pass  # Ignore errors here
+            logger.error(f"Decryption failed: {str(e)}", exc_info=True)
+            flash(f'Decryption failed: {str(e)}', 'danger')
+            return redirect(url_for('client_files'))
+            
+    finally:
+        # Always clean up the temporary directory
+        try:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+                logger.info(f"Cleaned up temporary directory: {temp_dir}")
+        except Exception as cleanup_err:
+            logger.error(f"Failed to clean up temporary directory: {str(cleanup_err)}")
+            # Continue even if cleanup fails
 
 @app.route('/client/search', methods=['GET', 'POST'])
 @login_required
@@ -521,8 +540,33 @@ def client_search():
                 decrypt_file(encrypted_path, decrypted_path, master_key, iv, tag, salt)
                 
                 # Read the file content and close the file immediately
-                with open(decrypted_path, 'r', errors='ignore') as f:
-                    file_content = f.read()
+                try:
+                    # For binary files like PDFs, try to read in binary mode first
+                    if file.file_type == 'pdf':
+                        with open(decrypted_path, 'rb') as f:
+                            file_data = f.read()
+                        # Try to extract text from PDF
+                        import PyPDF2
+                        import io as py_io
+                        pdf = PyPDF2.PdfReader(py_io.BytesIO(file_data))
+                        file_content = ""
+                        for page_num in range(len(pdf.pages)):
+                            file_content += pdf.pages[page_num].extract_text() + "\n"
+                    else:
+                        # For text files, read as text
+                        with open(decrypted_path, 'r', errors='ignore') as f:
+                            file_content = f.read()
+                except Exception as read_err:
+                    import logging
+                    logging.error(f"Error reading file content: {str(read_err)}")
+                    # Fallback to binary reading with text conversion
+                    with open(decrypted_path, 'rb') as f:
+                        file_data = f.read()
+                    # Try to convert binary to string
+                    try:
+                        file_content = file_data.decode('utf-8', errors='ignore')
+                    except:
+                        file_content = str(file_data)
                 
                 # Remove the file as soon as we're done with it
                 if os.path.exists(decrypted_path):
@@ -573,8 +617,33 @@ def client_search():
                     decrypt_file(encrypted_path, decrypted_path, master_key, iv, tag, salt)
                     
                     # Read the file content and close the file immediately
-                    with open(decrypted_path, 'r', errors='ignore') as f:
-                        file_content = f.read()
+                    try:
+                        # For binary files like PDFs, try to read in binary mode first
+                        if file.file_type == 'pdf':
+                            with open(decrypted_path, 'rb') as f:
+                                file_data = f.read()
+                            # Try to extract text from PDF
+                            import PyPDF2
+                            import io as py_io
+                            pdf = PyPDF2.PdfReader(py_io.BytesIO(file_data))
+                            file_content = ""
+                            for page_num in range(len(pdf.pages)):
+                                file_content += pdf.pages[page_num].extract_text() + "\n"
+                        else:
+                            # For text files, read as text
+                            with open(decrypted_path, 'r', errors='ignore') as f:
+                                file_content = f.read()
+                    except Exception as read_err:
+                        import logging
+                        logging.error(f"Error reading file content: {str(read_err)}")
+                        # Fallback to binary reading with text conversion
+                        with open(decrypted_path, 'rb') as f:
+                            file_data = f.read()
+                        # Try to convert binary to string
+                        try:
+                            file_content = file_data.decode('utf-8', errors='ignore')
+                        except:
+                            file_content = str(file_data)
                     
                     # Remove the file as soon as we're done with it
                     if os.path.exists(decrypted_path):

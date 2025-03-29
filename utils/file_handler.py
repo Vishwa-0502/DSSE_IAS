@@ -17,7 +17,11 @@ def process_file(file_path, file_type):
         return process_voice_file(file_path, file_type)
     else:
         # For unknown file types, try to read as text
-        return process_text_file(file_path)
+        try:
+            return process_text_file(file_path)
+        except:
+            # If reading as text fails, treat as binary
+            return f"Binary file of type {file_type}, indexing only filename"
 
 def process_text_file(file_path):
     """Process a text file."""

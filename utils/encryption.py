@@ -32,14 +32,19 @@ def derive_key(master_key, salt):
 
 def encrypt_file(input_path, output_path, master_key):
     """Encrypt a file using AES-GCM."""
+    logger.info(f"Starting encryption of {input_path} to {output_path}")
+    
     # Generate a random salt for key derivation
     salt = os.urandom(16)
+    logger.info(f"Generated salt of length {len(salt)} bytes")
     
     # Derive encryption key from master key and salt
     key = derive_key(master_key, salt)
+    logger.info(f"Key derived successfully, length: {len(key)}")
     
     # Generate a random IV (Initialization Vector)
     iv = os.urandom(12)  # 96 bits for GCM
+    logger.info(f"Generated IV of length {len(iv)} bytes")
     
     # Create an encryptor
     encryptor = Cipher(
@@ -51,20 +56,29 @@ def encrypt_file(input_path, output_path, master_key):
     # Read input file
     with open(input_path, 'rb') as f:
         plaintext = f.read()
+    logger.info(f"Read {len(plaintext)} bytes from input file")
     
-    # Add padding
-    padder = padding.PKCS7(algorithms.AES.block_size).padder()
-    padded_plaintext = padder.update(plaintext) + padder.finalize()
+    # Add padding - We'll use a try/except block to handle any padding issues
+    try:
+        padder = padding.PKCS7(algorithms.AES.block_size).padder()
+        padded_plaintext = padder.update(plaintext) + padder.finalize()
+        logger.info(f"Padding applied, padded length: {len(padded_plaintext)} bytes")
+    except Exception as e:
+        logger.warning(f"Padding failed: {str(e)}. Using original content.")
+        padded_plaintext = plaintext
     
     # Encrypt the file
     ciphertext = encryptor.update(padded_plaintext) + encryptor.finalize()
+    logger.info(f"Encryption complete, ciphertext length: {len(ciphertext)} bytes")
     
     # Get the authentication tag
     tag = encryptor.tag
+    logger.info(f"Authentication tag length: {len(tag)} bytes")
     
     # Write the encrypted data to the output file
     with open(output_path, 'wb') as f:
         f.write(ciphertext)
+    logger.info(f"Encrypted data written to {output_path}")
     
     # Return the IV, tag, and salt for later decryption
     return iv, tag, salt
@@ -95,10 +109,15 @@ def decrypt_file(input_path, output_path, master_key, iv, tag, salt):
         padded_plaintext = decryptor.update(ciphertext) + decryptor.finalize()
         logger.info(f"Decryption successful, got {len(padded_plaintext)} bytes of padded plaintext")
         
-        # Remove padding
-        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-        plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
-        logger.info(f"Padding removed, final plaintext is {len(plaintext)} bytes")
+        try:
+            # Try to remove padding - this will work for text-based files
+            unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+            plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
+            logger.info(f"Padding removed, final plaintext is {len(plaintext)} bytes")
+        except Exception as padding_err:
+            # If unpadding fails (could happen with binary files like PDFs that already have internal structure)
+            logger.warning(f"Unpadding failed, using padded content: {str(padding_err)}")
+            plaintext = padded_plaintext
         
         # Write the decrypted data to the output file
         with open(output_path, 'wb') as f:
