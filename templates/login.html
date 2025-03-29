@@ -1,68 +1,107 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %} {% block title %}Login{% endblock %} {% block content
+%}
 
-{% block title %}Login{% endblock %}
+<div class="container text-center">
+  <h1>DEPARTMENT OF INFORMATION TECHNOLOGY</h1>
+  <h3>NATIONAL INSTITUTE OF TECHNOLOGY KARNATAKA, SURATHKAL-575025</h3>
+  <h2>Information Assurance and Security (IT352) Course Project</h2>
+  <h3>Title: <b>Secure Data Encryption</b></h3>
+  <h3>Carried out by</h3>
+  <h3>Gaurav Kumar (221IT027)</h3>
+  <h3>Vishwajeet Dodyalkar (221IT084)</h3>
+  <h3>During Academic Session January – April 2025</h3>
+</div>
 
-{% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-6 col-md-8">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4 class="card-title mb-0"><i class="fas fa-sign-in-alt me-2"></i>Login</h4>
+  <div class="col-lg-6 col-md-8">
+    <div class="card shadow">
+      <div class="card-header bg-primary text-white">
+        <h4 class="card-title mb-0">
+          <i class="fas fa-sign-in-alt me-2"></i>Login
+        </h4>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('login') }}">
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-user"></i></span>
+              <input
+                type="text"
+                class="form-control"
+                id="username"
+                name="username"
+                required
+              />
             </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('login') }}">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-user"></i></span>
-                            <input type="text" class="form-control" id="username" name="username" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login
-                        </button>
-                    </div>
-                </form>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-lock"></i></span>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              />
             </div>
-            <div class="card-footer text-center">
-                <p class="mb-0">Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
-            </div>
-        </div>
-        
-        <div class="card mt-4 shadow">
-            <div class="card-header bg-info">
-                <h5 class="card-title mb-0">About DSSE System</h5>
-            </div>
-            <div class="card-body">
-                <p>The Dynamic Searchable Symmetric Encryption (DSSE) system enables secure encrypted data sharing and searching without decryption.</p>
-                <div class="row text-center">
-                    <div class="col-sm-6 mb-3">
-                        <div class="card h-100 bg-dark">
-                            <div class="card-body">
-                                <h5 class="card-title"><i class="fas fa-server me-2"></i>Server</h5>
-                                <p class="card-text">Encrypt and send files, update dynamically, search encrypted data.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6 mb-3">
-                        <div class="card h-100 bg-dark">
-                            <div class="card-body">
-                                <h5 class="card-title"><i class="fas fa-laptop me-2"></i>Client</h5>
-                                <p class="card-text">Receive encrypted files, decrypt securely, search within decrypted data.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-sign-in-alt me-2"></i>Login
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer text-center">
+        <p class="mb-0">
+          Don't have an account?
+          <a href="{{ url_for('register') }}">Register</a>
+        </p>
+      </div>
     </div>
+
+    <div class="card mt-4 shadow">
+      <div class="card-header bg-info">
+        <h5 class="card-title mb-0">About DSSE System</h5>
+      </div>
+      <div class="card-body">
+        <p>
+          The Dynamic Searchable Symmetric Encryption (DSSE) system enables
+          secure encrypted data sharing and searching without decryption.
+        </p>
+        <div class="row text-center">
+          <div class="col-sm-6 mb-3">
+            <div class="card h-100 bg-dark">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <i class="fas fa-server me-2"></i>Server
+                </h5>
+                <p class="card-text">
+                  Encrypt and send files, update dynamically, search encrypted
+                  data.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 mb-3">
+            <div class="card h-100 bg-dark">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <i class="fas fa-laptop me-2"></i>Client
+                </h5>
+                <p class="card-text">
+                  Receive encrypted files, decrypt securely, search within
+                  decrypted data.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
