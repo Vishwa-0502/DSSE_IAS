@@ -35,10 +35,21 @@ def create_search_index(text_content, master_key, file_id=None):
     
     return encrypted_index
 
-def search_file(file_path, keyword):
-    """Search for a keyword in a decrypted file."""
-    with open(file_path, 'r', errors='ignore') as f:
-        content = f.read()
+def search_file(file_path_or_content, keyword):
+    """Search for a keyword in a decrypted file or string content.
+    
+    Args:
+        file_path_or_content: Either a file path (str) or a file-like object (StringIO)
+        keyword: The keyword to search for
+    """
+    # Check if the input is a file path or already content
+    if isinstance(file_path_or_content, str) and not hasattr(file_path_or_content, 'read'):
+        # It's a file path
+        with open(file_path_or_content, 'r', errors='ignore') as f:
+            content = f.read()
+    else:
+        # It's a file-like object (StringIO)
+        content = file_path_or_content.read() if hasattr(file_path_or_content, 'read') else file_path_or_content
     
     # Convert keyword to lowercase for case-insensitive search
     keyword_lower = keyword.lower()

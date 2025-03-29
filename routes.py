@@ -1,4 +1,5 @@
 import os
+import io
 import json
 from datetime import datetime
 from flask import render_template, redirect, url_for, flash, request, jsonify, send_file, abort
@@ -344,23 +345,40 @@ def client_decrypt(file_id):
     # Get encrypted file path
     encrypted_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     
-    # Prompt user for master key (in a real system, this would be securely shared)
-    # For demo purposes, we'll use a hardcoded key or retrieve it from a secure source
-    master_key = generate_master_key()  # In a real system, this would be securely obtained
+    # For demo purposes, we'll use a consistent key
+    master_key = generate_master_key()
     
     # Decrypt the file
     try:
         decrypt_file(encrypted_path, decrypted_path, master_key, file.iv, file.tag, file.salt)
         
-        # Return the decrypted file as a download
-        return send_file(decrypted_path, as_attachment=True, download_name=file.original_filename)
+        # For better file handling to avoid permission errors, we'll read the file into memory
+        # and then immediately close and delete it
+        with open(decrypted_path, 'rb') as f:
+            file_data = f.read()
+        
+        # Delete the file now that we've read it
+        if os.path.exists(decrypted_path):
+            os.remove(decrypted_path)
+        
+        # Create a response with the file data
+        response = app.response_class(
+            file_data,
+            mimetype='application/octet-stream',
+            direct_passthrough=False
+        )
+        response.headers.set('Content-Disposition', f'attachment; filename={file.original_filename}')
+        return response
     except Exception as e:
         flash(f'Decryption failed: {str(e)}', 'danger')
         return redirect(url_for('client_files'))
     finally:
-        # Clean up temporary decrypted file
-        if os.path.exists(decrypted_path):
-            os.remove(decrypted_path)
+        # Just in case, try to clean up again (should normally be gone already)
+        try:
+            if os.path.exists(decrypted_path):
+                os.remove(decrypted_path)
+        except:
+            pass  # Ignore errors here
 
 @app.route('/client/search', methods=['GET', 'POST'])
 @login_required
@@ -406,8 +424,16 @@ def client_search():
                 # Decrypt the file
                 decrypt_file(encrypted_path, decrypted_path, master_key, file.iv, file.tag, file.salt)
                 
-                # Search in decrypted file
-                search_results = search_file(decrypted_path, keyword)
+                # Read the file content and close the file immediately
+                with open(decrypted_path, 'r', errors='ignore') as f:
+                    file_content = f.read()
+                
+                # Remove the file as soon as we're done with it
+                if os.path.exists(decrypted_path):
+                    os.remove(decrypted_path)
+                
+                # Search in the file content
+                search_results = search_file(io.StringIO(file_content), keyword)
                 
                 if search_results:
                     results.append({
@@ -418,9 +444,12 @@ def client_search():
             except Exception as e:
                 flash(f'Search failed: {str(e)}', 'danger')
             finally:
-                # Clean up temporary decrypted file
-                if os.path.exists(decrypted_path):
-                    os.remove(decrypted_path)
+                # Just in case, try to clean up again
+                try:
+                    if os.path.exists(decrypted_path):
+                        os.remove(decrypted_path)
+                except:
+                    pass
                     
         else:
             # Search in all shared files
@@ -438,8 +467,16 @@ def client_search():
                     # Decrypt the file
                     decrypt_file(encrypted_path, decrypted_path, master_key, file.iv, file.tag, file.salt)
                     
-                    # Search in decrypted file
-                    search_results = search_file(decrypted_path, keyword)
+                    # Read the file content and close the file immediately
+                    with open(decrypted_path, 'r', errors='ignore') as f:
+                        file_content = f.read()
+                    
+                    # Remove the file as soon as we're done with it
+                    if os.path.exists(decrypted_path):
+                        os.remove(decrypted_path)
+                    
+                    # Search in the file content
+                    search_results = search_file(io.StringIO(file_content), keyword)
                     
                     if search_results:
                         results.append({
@@ -450,8 +487,11 @@ def client_search():
                 except Exception as e:
                     flash(f'Search failed for {file.original_filename}: {str(e)}', 'danger')
                 finally:
-                    # Clean up temporary decrypted file
-                    if os.path.exists(decrypted_path):
-                        os.remove(decrypted_path)
+                    # Just in case, try to clean up again
+                    try:
+                        if os.path.exists(decrypted_path):
+                            os.remove(decrypted_path)
+                    except:
+                        pass
     
     return render_template('client/search.html', shared_files=shared_files, results=results)
